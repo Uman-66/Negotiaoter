@@ -1,0 +1,191 @@
+The Negotiator — Cleaning Vertical · 5h Build Plan (v4 · three-agent)
+Team: Nirma (frontend) · Umra (backend core) · Aleks (intake backend + conversation design + EL dashboard + personas) · Maxim (voice integration + negotiation loop) Stack: FastAPI (Python) · Supabase · React + Tailwind · ElevenLabs Agents · Claude Code Clock: Build 22:00–03:00 CET tonight · sleep · 10:30–13:00 CET demo recording + submission (deadline 15:00, keep 2h buffer)
+
+
+Locked decisions
+Vertical: home cleaning. The demo generates the price spread live: one confirmed spec, three quotes 2–3x apart.
+Counterparties: Aleks role-plays all 3 personas on live web calls, back-to-back, from persona cards.
+Voice interview: live-interactive on the recording — the intake agent actually works; the demo shows real unscripted interaction with it.
+Three agents, three jobs: Agent 1 Interviewer (1-on-1 intake with the user) · Agent 2 Caller (calls providers, shares the spec, collects first quotes) · Agent 3 Closer (renegotiates using real competing bids). Maps 1:1 to the brief's Estimator/Caller/Closer modules; demo runs two call rounds.
+Text-first. Full loop runs in text by 00:30 (guaranteed submission); voice snaps on after.
+Ownership rule: all intake writes go through Aleks's endpoints. POST /intake/doc and POST /specs are Aleks's — one person owns doc/interview → spec JSON → DB. Everyone else consumes, never writes, specs.
+Honesty guardrail (everyone): the agent may cite a real competing quote from the DB; it may never invent a bid, inventory, or scope. Scored criterion.
+Screen 3 updates after each call completes — no streaming; frontend polls and flips cards on call end.
+
+
+Architecture
+User ── AGENT 1: Interviewer (1-on-1 voice intake) ──┐
+
+User ── doc upload (PDF/photo) ──────────────────────┤→ ALEKS: /intake/doc → /specs
+
+                                                      ↓
+
+                     user CONFIRMS spec (gate, Umra's PATCH)
+
+                                                      ↓
+
+                     FastAPI orchestrator (call sessions — Umra)
+
+                                                      ↓
+
+   ROUND 1 — AGENT 2: Caller  → phones each company, shares the confirmed spec
+
+             identically, collects the first itemized quote
+
+             tools: log_quote_item · log_outcome
+
+                                                      ↓
+
+   ROUND 2 — AGENT 3: Closer  → calls back the best negotiable target, cites the
+
+             real competing bid, pushes on fees, closes or documents the outcome
+
+             tools: get_best_bid · log_quote_item · log_outcome
+
+                                                      ↓
+
+        Supabase → red-flag + ranking engine → Report UI (Nirma)
+The three agents (build all three in the EL dashboard)
+Agent
+Job
+Tools
+Prompt owner
+Wiring owner
+1 — Interviewer
+1-on-1 voice intake with the user; asks what a pro estimator asks, fills every spec field, confirms back; transcript → Aleks's /specs
+none
+Aleks
+Maxim
+2 — Caller
+Round 1: phones each company, describes the confirmed spec identically, collects the first quote with fees itemized, handles friction, ends structured
+log_quote_item, log_outcome
+Aleks
+Maxim
+3 — Closer
+Round 2: calls the best negotiable target back; opens from the company's own round-1 quote (passed in as a dynamic variable), pulls get_best_bid and cites the real competing bid, pushes on fees, logs the new total
+get_best_bid, log_quote_item, log_outcome
+Aleks
+Maxim
+
+
+Load-bearing trick: mid-call tool calls. Agent 2's log_quote_item / log_outcome fire during the call so quotes land itemized; Agent 3's get_best_bid returns the real lowest competing bid mid-call → leverage is DB data, not script → price movement is emergent (the #1 criterion). Keeping Caller and Closer separate keeps each prompt simple and maps 1:1 to the brief's scored modules.
+
+Closer context note (Maxim): the Closer must know who it's calling and their round-1 quote — pass company_name and opening_total as EL dynamic variables when starting the session, so it never has to ask and never invents.
+
+
+Config: verticals/cleaning.yaml
+Spec fields: property (type, sqft, BR/BA, levels) · clean_type (standard/deep/move_out) · frequency · condition (clutter, pets, weeks since last clean) · add_ons (fridge, oven, windows, baseboards, laundry) · access (parking, entry, walk-up floor) · schedule.
+
+Benchmarks (2026 US): standard 2–3BR $120–$280 (avg ~$180) · deep = 1.5–2x standard ($200–$500+) · move-out $250–$600 · hourly $45–$75/cleaner (companies) · recurring discounts: weekly ~20–25%, biweekly ~10–15%.
+
+Red flags: >30% below median for clean type · standard-clean price on a first-time job (market prices first cleans as deep → on-arrival upcharge risk) · uncapped hourly · refuses to itemize · cash-only/no written quote.
+
+Levers: cite competing binding quote · commit biweekly for discount · bundle add-ons · off-peak slot.
+
+
+Persona cards (Aleks plays all 3)
+Persona
+Opens
+Floor
+Concession rule
+Premium/tough
+$420 deep
+$355
+drops 10% only vs a cited binding quote OR biweekly commitment
+Lowballer
+$210 flat
+—
+reveals ~$95 fridge/oven/pet fees only if pressed to itemize; "may re-quote as deep on arrival"
+Upseller
+$260 fair
+$260
+pushes deep-clean upgrade + recurring + add-ons; tests scope defense
+
+
+Distinct voices/energy per persona so the recording reads as three different companies.
+
+
+Timeline (build night)
+CET
+Milestone
+22:00–22:30
+Kickoff: Umra publishes job_spec + quote schemas (the contract) · repo scaffold · cleaning.yaml drafted · Supabase up · EL accounts ready
+22:30–00:30
+Parallel build, text mode (tracks below)
+★ 00:30
+CHECKPOINT: full loop in text — doc → spec → confirm → 3 simulated calls → ranked report. This is the guaranteed submission.
+00:30–02:15
+Voice on: Agent 1 (Interviewer) live · Agent 2 (Caller) round-1 calls vs Aleks's 3 personas, tools firing · Agent 3 (Closer) renegotiation call vs premium persona with get_best_bid
+02:15–03:00
+Golden calls recorded (price-movement moment, "are you a robot?") · red flags + citations in report · FEATURE FREEZE 03:00
+sleep
+
+
+10:30–12:00
+Fresh run-through · record 3-min demo (live voice-interview interaction + live persona calls) · fix only demo-blocking bugs
+12:00–13:00
+README + submission form. Submit by 13:00 — 2h buffer to the 15:00 deadline
+
+
+
+Per-person step-by-step
+Umra — Backend core (FastAPI + Supabase)
+22:00 Write and post job_spec.json + quote.json schemas in the repo README (15 min — blocks everyone, do first). Create Supabase tables: specs, companies (seed 3 mock cleaning companies), calls, quotes, quote_items. (You do NOT build POST /specs — that's Aleks's. You own everything downstream of a spec existing.)
+22:30 FastAPI skeleton + routes: PATCH /specs/{id}/confirm (the gate), GET /specs/{id}, GET /report/{spec_id}.
+23:00 The three tool endpoints (EL calls these as webhooks — dead simple):
+POST /tools/log_quote_item {call_id, label, amount}
+GET /tools/get_best_bid?spec_id= → current lowest confirmed total + company name
+POST /tools/log_outcome {call_id, outcome: quote|callback|declined, total, pricing_model}
+23:30 Call-session state machine: POST /calls/start (spec_id, company_id) → queued→calling→done; GET /calls?spec_id= for Nirma's polling.
+00:00 Red-flag + ranking engine as a pure Python function over cleaning.yaml; runs on log_outcome; writes flags to the quote row. Ranking = total asc, flagged quotes demoted with reason.
+00:30 Checkpoint support: text loop end-to-end against your endpoints.
+00:30–02:15 Pair with Maxim on EL webhook wiring (auth headers, payload shapes); capture negotiation fields (opening_total, final_total, moved_because) from tool calls.
+02:15–03:00 Report payload: transcript URL + recording URL per quote, null-tolerant. Freeze.
+Aleks — Intake backend + conversation design + EL dashboard + personas
+22:00 Finalize the 3 persona cards with exact numbers (15 min). Skim cleaning.yaml.
+22:15 — Intake backend (your endpoints, in Umra's FastAPI app):
+POST /intake/doc — accept PDF/photo → Claude vision → draft job_spec.json, validated against Umra's schema, missing fields marked.
+POST /specs — persist any spec (from doc route OR voice-interview transcript) to Supabase; single write-path for all intake.
+Test with 2 fixtures: a phone photo of a room, a fake existing-quote PDF. Target: working by 23:45. Use Claude Code — this is ~2 focused hours of vibe-codeable work.
+23:45 Write the four required behavior artifacts (short, paste-able):
+Disclosure: "Hi, I'm an AI assistant calling on behalf of a customer to get a cleaning quote…"
+"Are you a robot?": honest yes + straight back to the quote, warm not defensive.
+Honesty guardrail: cite only bids returned by get_best_bid; never invent scope/bids.
+Structured endings: itemized quote / callback commitment / documented decline — never "around two hundred."
+00:00 System prompts — three, one per agent: (a) Agent 1 Interviewer — asks what a professional estimator asks, fills every spec field, confirms back; (b) Agent 2 Caller — describes the confirmed spec identically, collects the first quote, presses for fee itemization, no negotiating beyond clarifying, ends structured; (c) Agent 3 Closer — opens from the company's round-1 quote (dynamic variable), pulls get_best_bid, cites the real bid, applies levers, honesty guardrail hard-coded. Hand all three to Maxim for text-loop testing.
+00:15 Configure all three agents in the ElevenLabs dashboard (with Maxim): paste each prompt, attach each agent's tools per the table above, pick voices (same voice for Caller and Closer — it's the same 'assistant' to the companies), set first messages.
+00:30–02:15 Role-play window, two rounds: Round 1 — take Agent 2's calls as each persona back-to-back; give the first price when asked, create friction (interrupt, go vague, ask "am I talking to a robot?"), reveal fees only if pressed. Round 2 — take Agent 3's callback as the premium persona; only drop $420→~$355 when the Closer actually cites the competing bid — that's the money moment.
+02:15–03:00 Best takes re-recorded as golden calls; note timestamps of the price-drop and disclosure moments. Freeze.
+Maxim — Voice integration + negotiation loop (Claude Code throughout)
+22:00 EL account + API key in .env; skim EL Agents docs: tools/webhooks + web-call widget. Aleks owns dashboard config; you own everything programmatic.
+22:30 — Text negotiation loop (moved to you): run Aleks's Caller and Closer prompts (drafts until 00:00) against a Claude counter-agent playing each persona — Caller for round-1 extraction, Closer for the bid-citing renegotiation. 8-case eval: every fee extracted? lowball flag triggered? Closer cites only real DB bids? ending structured? Feed findings back to Aleks between his intake sprints.
+23:30 Wire EL agent tools → Umra's three endpoints; verify a dashboard test call writes rows to Supabase. Riskiest integration in the build — front-load it.
+00:15 Embed/link Agent 1 (Interviewer) for live on-recording interaction; pipe its transcript → spec extraction → Aleks's POST /specs (same write-path as docs → identical spec from both paths, a scored criterion).
+00:30 Drive the checkpoint run.
+00:30–02:15 Round 1 — Agent 2 (Caller) web-call sessions vs Aleks: start a call per company card, tie EL session → call_id, save recording + transcript URLs onto the quote at call end. Cap test calls ~90s. Then wire Round 2 — Agent 3 (Closer) session start with company_name + opening_total passed as dynamic variables.
+02:15–03:00 Run the Closer renegotiation vs the premium persona: Agent 3 pulls get_best_bid, cites it, premium drops; negotiation fields (opening→final, moved_because) land on the quote. Confirm recordings play from the report. Freeze.
+Morning (you own): run-through, record the 3-min demo, README, submit by 13:00.
+Nirma — Frontend (React + Tailwind)
+22:00 Vite + React + Tailwind scaffold. Copy Umra's schemas; create fixtures/ with 1 spec + 3 quotes so you never block.
+22:30 — Screen 1 (Intake): dropzone (PDF/image → Aleks's POST /intake/doc) + "Start voice interview" button + parsing state.
+23:00 — Screen 2 (Spec confirmation — the required gate): editable spec form; big unmistakable "Confirm & call 3 companies" CTA → Umra's PATCH /specs/{id}/confirm. Judges must see this gate.
+23:45 — Screen 3 (Call board, per-call updates): one card per company, status pill (queued / calling / done). Poll GET /calls?spec_id= every ~5s; on completion the card flips to total, itemized fees, red-flag badge, outcome. "Best bid so far" ticker updates per completion.
+00:30 Swap fixtures for live API; checkpoint.
+00:45 — Screen 4 (Ranked report): ranked table (total, expandable fees, flag badges) · recommended-deal card with plain-language "why" · opening → final price-drop callout · transcript link + audio player per quote.
+02:00–03:00 Projector polish: big type, high contrast, price numbers are the hero. Freeze.
+
+
+Demo script (~3 min, recorded 10:30–12:00 with live interaction)
+20s pain: "Same 2BR deep clean. Three companies. Watch the prices."
+Intake, live (Agent 1): interact with the Interviewer unscripted ~20s and drop the photo — both produce the identical spec → hit Confirm.
+Round 1 (Agent 2): three Caller calls vs Aleks's personas; each completed card flips with itemized fees; lowballer gets the red flag.
+Round 2, the money moment (Agent 3), played aloud: the Closer calls the premium company back, cites the competing bid, premium drops $420→$355. Replay the "are you a robot?" clip.
+Report: ranked table, lowballer flagged −38% + hidden fees, recommended deal with transcript citation + the opening→final price-drop callout.
+Scope traps — refuse
+Twilio/real businesses · agent-to-agent audio · real Google Places (mock the list) · a second working vertical (show the yaml for 10s) · auth/deploy/mobile · streaming transcripts (cut by design).
+If behind at 01:30 (pre-agreed cuts, in order)
+Voice interview → shortest viable live interaction (2 questions) with doc intake carrying the full spec.
+Drop friction extras; keep disclosure + robot-question + the Agent 3 price-drop call (never cut this — it's the #1 criterion).
+Screen 4 citations → static links, no in-app player.
+Nuclear: submit the 00:30 text loop + whatever golden calls exist.
+

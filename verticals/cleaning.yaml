@@ -1,0 +1,67 @@
+# Vertical config — Home Cleaning
+# Switching verticals should mean swapping this file, not rewriting agents.
+vertical: cleaning
+display_name: "Home Cleaning"
+
+# --- Job spec (full JSON Schema lives in schemas/job_spec.schema.json) ---
+spec_fields:
+  property: [type, sqft, bedrooms, bathrooms, levels]
+  clean_type: standard/deep/move_out
+  frequency: one_time/weekly/biweekly/monthly
+  condition: [clutter_level, has_pets, weeks_since_last_clean]
+  add_ons: [fridge, oven, windows, baseboards, laundry]
+  access: [parking, entry_method, walk_up_floor]
+  schedule: [preferred_date, preferred_time_window, flexibility]
+
+interview_questions:
+  - "What type of home is it (apartment, house, condo, townhouse), and how many square feet, bedrooms, bathrooms, and levels does it have?"
+  - "Are we looking for a standard clean, deep clean, or move-out clean?"
+  - "How often do you want this cleaned — one-time, weekly, biweekly, or monthly?"
+  - "What is the condition of the home? Specifically: clutter level (low/medium/high), are there pets, and how many weeks has it been since the last clean?"
+  - "Do you need any add-ons like cleaning inside the fridge, inside the oven, windows, baseboards, or laundry?"
+  - "How will the cleaners access the home (entry method), and what is the parking situation (street, driveway, garage, metered)? Is there a walk-up?"
+  - "What is your preferred date and time window for the service, and how flexible are you?"
+
+# --- Benchmarks (2026 US cleaning rates) ---
+benchmarks:
+  standard:
+    low: 120
+    median: 180
+    high: 280
+  deep:
+    low: 200
+    median: 350
+    high: 500
+  move_out:
+    low: 250
+    median: 425
+    high: 600
+
+# --- Red-flag rules ---
+red_flags:
+  - id: lowball
+    rule: "total < 0.70 * median"
+    message: "30%+ below median for clean type — warning sign of lowballing, low quality, or future upcharges"
+  - id: standard_first_time
+    rule: "clean_type == 'standard' and frequency == 'one_time' and weeks_since_last_clean > 4"
+    message: "Standard clean quoted for first-time clean (weeks since last clean > 4) — high risk of on-arrival deep clean upcharge"
+  - id: uncapped_hourly
+    rule: "pricing_model == 'hourly' and total == null"
+    message: "Uncapped hourly rate with no maximum price guarantee"
+  - id: no_itemization
+    rule: "refuses_itemization == true"
+    message: "Refuses to break out fees or provide itemized pricing"
+  - id: cash_only
+    rule: "cash_only == true"
+    message: "Requires cash payment and refuses to provide a written quote"
+
+# --- Negotiation levers ---
+negotiation_levers:
+  - id: competing_bid
+    line: "I have an itemized quote for ${best_bid} from {company_name} — can you beat it?"
+  - id: frequency_commitment
+    line: "If we commit to biweekly service, what kind of discount can you offer?"
+  - id: add_on_bundle
+    line: "If the price is firm, can you throw in the fridge and oven cleaning?"
+  - id: off_peak_slot
+    line: "Are there off-peak days or times that would lower the price?"

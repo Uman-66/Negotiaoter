@@ -1,0 +1,60 @@
+# Vertical config — Local Moving (household)
+# Switching verticals should mean swapping this file, not rewriting agents.
+vertical: moving
+display_name: "Local Moving (household)"
+
+# --- Job spec (full JSON Schema lives in schemas/job_spec.schema.json) ---
+spec_fields:
+  origin: [address, home_type, bedrooms, floor, elevator, stairs_flights, parking_distance_ft]
+  destination: [address, home_type, floor, elevator, stairs_flights, parking_distance_ft]
+  move: [distance_miles, move_date, flexibility_days]
+  inventory: [large_items, boxes_estimate, fragile_items]
+  services: [packing, disassembly, insurance]
+
+interview_questions:
+  - "What are the two addresses — where are you moving from and to?"
+  - "What kind of home is each one — apartment or house, and which floor? Any elevator?"
+  - "How many bedrooms of stuff are we moving?"
+  - "Any large or unusual items — piano, safe, gym equipment, king bed?"
+  - "Roughly how many boxes — or should I estimate from the rooms?"
+  - "Stairs at either end? How close can a truck park to each door?"
+  - "What date do you want to move, and how flexible is it?"
+  - "Do you need packing help, or will everything be boxed and ready?"
+
+# --- Benchmarks (VERIFY against moveBuddha/FMCSA before the demo) ---
+benchmarks:
+  source: "moveBuddha, 2BR local move ~45mi — placeholder values, verify before demo"
+  low: 1158
+  median: 2100
+  high: 6506
+
+# --- Red-flag rules ---
+red_flags:
+  - id: lowball
+    rule: "total < 0.70 * benchmarks.median"
+    message: "30%+ below market — industry guidance treats this as a warning sign, not a win"
+  - id: no_itemization
+    rule: "refuses itemization after two requests"
+    message: "Won't break out fees — moving-day surprises likely"
+  - id: sight_unseen_binding
+    rule: "offers binding price without hearing the inventory"
+    message: "Binding quote without inventory details is the classic bait pattern"
+  - id: cash_deposit
+    rule: "requires cash deposit to honor price"
+    message: "Cash-only deposit demands correlate with hostage-load complaints"
+
+# --- Negotiation levers ---
+negotiation_levers:
+  - id: competing_bid
+    line: "I have an itemized quote for ${best_bid} for this exact job — can you beat it?"
+    constraint: "only cite bids that exist in the quotes DB, exact amounts"
+  - id: fee_challenge
+    line: "Which of these fees are negotiable if we book this week?"
+    negotiable_fees: [fuel, materials]
+  - id: date_flexibility
+    line: "The customer can do a weekday or mid-month if that changes the price."
+    constraint: "only if spec flexibility_days > 0"
+  - id: price_match_extras
+    line: "If the price is firm, can you include packing materials or disassembly?"
+
+call_outcomes: [itemized_quote, callback_commitment, declined_documented]

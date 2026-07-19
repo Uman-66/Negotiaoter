@@ -1,0 +1,38 @@
+{
+  "origin": {
+    "address": "214 Marion St, Rock Hill, SC",
+    "home_type": "apartment",
+    "bedrooms": 2,
+    "floor": 3,
+    "elevator": false,
+    "stairs_flights": 2,
+    "parking_distance_ft": 60
+  },
+  "destination": {
+    "address": "1119 N Davidson St, Charlotte, NC",
+    "home_type": "apartment",
+    "floor": 2,
+    "elevator": true,
+    "stairs_flights": 0,
+    "parking_distance_ft": 30
+  },
+  "move": {
+    "distance_miles": 45,
+    "move_date": "2026-08-08",
+    "flexibility_days": 3
+  },
+  "inventory": {
+    "large_items": ["queen bed", "sofa (3-seat)", "dining table + 4 chairs", "dresser", "65-inch TV", "desk"],
+    "boxes_estimate": 35,
+    "boxes_is_estimate": true,
+    "fragile_items": ["TV", "glassware box", "framed prints"]
+  },
+  "services": {
+    "packing": "none",
+    "disassembly": true,
+    "insurance": "basic"
+  },
+  "open_questions": [],
+  "confirmed_by_user": true,
+  "intake_source": "voice_interview"
+}

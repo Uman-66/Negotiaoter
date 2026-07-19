@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Quote",
+  "description": "One structured call outcome for home cleaning. Every call produces exactly one of these.",
+  "type": "object",
+  "required": ["company", "call_id", "outcome"],
+  "properties": {
+    "company": { "type": "string" },
+    "call_id": { "type": "string" },
+    "outcome": { "enum": ["quote", "callback", "declined"] },
+    "pricing_model": { "enum": ["flat", "hourly"] },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "amount"],
+        "properties": {
+          "label": { "type": "string" },
+          "amount": { "type": "number" },
+          "disclosed_voluntarily": { "type": "boolean", "default": true },
+          "negotiable": { "type": "boolean", "default": false }
+        }
+      }
+    },
+    "opening_total": { "type": "number" },
+    "final_total": { "type": "number" },
+    "total": { "type": "number" },
+    "moved_because": { "type": "string", "description": "Reason for price movement" },
+    "conditions": { "type": "array", "items": { "type": "string" } },
+    "red_flags": { "type": "array", "items": { "type": "string" } },
+    "red_flag_reasons": { "type": "array", "items": { "type": "string" } },
+    "callback": {
+      "type": "object",
+      "properties": {
+        "contact_name": { "type": "string" },
+        "window": { "type": "string" }
+      }
+    },
+    "transcript_url": { "type": "string" },
+    "recording_url": { "type": "string" }
+  }
+}

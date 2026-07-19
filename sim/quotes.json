@@ -1,0 +1,195 @@
+[
+  {
+    "company": "Mike, Metrolina Movers",
+    "call_id": "20260718-213222",
+    "line_items": [
+      {
+        "label": "labor and truck",
+        "amount": 1800,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "stairs",
+        "amount": 300,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "fuel",
+        "amount": 200,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "materials",
+        "amount": 100,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "basic insurance",
+        "amount": 0,
+        "disclosed_voluntarily": true
+      }
+    ],
+    "red_flags": [],
+    "outcome": "itemized_quote",
+    "initial_total": 2400,
+    "final_total": 2400,
+    "binding": false,
+    "conditions": [
+      "labor and truck: $1,800",
+      "stairs: $300",
+      "fuel: $200",
+      "materials: $100",
+      "basic insurance included",
+      "disassembly included"
+    ],
+    "notes": "Quoted $2,400 all-in, itemized as requested. No packing service. All quotes are for 2026-08-08, 2BR move, no elevator at origin, elevator at destination."
+  },
+  {
+    "company": "Danny, QuickBudget Moving",
+    "call_id": "20260718-213324",
+    "line_items": [
+      {
+        "label": "All-inclusive move fee",
+        "amount": 1100,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "Stairs fee (standard, if applicable)",
+        "amount": 250,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "Total with stairs fee",
+        "amount": 1350
+      },
+      {
+        "label": "Basic insurance",
+        "amount": 0
+      },
+      {
+        "label": "Disassembly of furniture",
+        "amount": 0
+      }
+    ],
+    "red_flags": [
+      "lowball: $1350 is 36% below market median $2100"
+    ],
+    "outcome": "itemized_quote",
+    "initial_total": 1350,
+    "final_total": 1350,
+    "binding": false,
+    "conditions": [
+      "$250 stairs fee is mandatory; total $1,350",
+      "Basic insurance and disassembly included",
+      "Deposit to lock in rate"
+    ],
+    "notes": "All-inclusive quote. Refused itemization beyond stairs fee; no further discounts for alternate dates or prompt booking."
+  },
+  {
+    "company": "Patricia, White Glove Relocations",
+    "call_id": "20260718-213401",
+    "line_items": [
+      {
+        "label": "Base labor and truck fee",
+        "amount": 1500,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "Stairs charge (third floor)",
+        "amount": 250,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "Fuel cost",
+        "amount": 150,
+        "disclosed_voluntarily": true,
+        "negotiable": true
+      },
+      {
+        "label": "Materials (wrapping fragile items)",
+        "amount": 100,
+        "disclosed_voluntarily": true,
+        "negotiable": true
+      },
+      {
+        "label": "Premium insurance (optional)",
+        "amount": 300,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "Basic insurance (included)",
+        "amount": 0,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "Discounted total (if booked today)",
+        "amount": 1850,
+        "disclosed_voluntarily": true,
+        "negotiable": true
+      }
+    ],
+    "red_flags": [],
+    "outcome": "itemized_quote",
+    "initial_total": 2000,
+    "final_total": 1850,
+    "binding": false,
+    "conditions": [
+      "$1,850 total if booked today, basic insurance included, optional premium insurance at $300 extra"
+    ]
+  },
+  {
+    "company": "Mike, Metrolina Movers",
+    "call_id": "20260718-213428",
+    "line_items": [
+      {
+        "label": "labor and truck",
+        "amount": 1800,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "stairs fee",
+        "amount": 300,
+        "disclosed_voluntarily": true
+      },
+      {
+        "label": "fuel fee",
+        "amount": 200,
+        "disclosed_voluntarily": true,
+        "negotiable": true
+      },
+      {
+        "label": "materials fee",
+        "amount": 100,
+        "disclosed_voluntarily": true,
+        "negotiable": true
+      },
+      {
+        "label": "discounted total (weekday or mid-month)",
+        "amount": 2160
+      },
+      {
+        "label": "waived fuel fee (if flexible date)",
+        "amount": 0
+      }
+    ],
+    "red_flags": [],
+    "outcome": "itemized_quote",
+    "initial_total": 2400,
+    "final_total": 2160,
+    "binding": false,
+    "conditions": [
+      "$2,160 applies if booked for a weekday or mid-month date; otherwise, original fees apply"
+    ],
+    "notes": "$200 fuel fee waived if mid-month or weekday. Competing bid was $1,850 from White Glove Relocations. Breakdown: $1,800 labor/truck, $300 stairs, $100 materials. No packing; disassembly included; basic insurance assumed."
+  },
+  {
+    "company": "front desk, Carolina Van Lines",
+    "call_id": "20260718-213737",
+    "line_items": [],
+    "red_flags": [],
+    "outcome": "callback_commitment",
+    "callback_contact": "unknown",
+    "callback_window": "tomorrow between 9 and 11",
+    "notes": "Company does not provide quotes by phone; promised callback within time window without specifying a contact name."
+  }
+]
