@@ -4,16 +4,17 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from .database import (
-    db_create_spec, db_get_spec, db_confirm_spec, db_start_call, 
+    db_create_spec, db_get_spec, db_update_spec, db_confirm_spec, db_start_call,
     db_get_calls, db_log_quote_item, db_get_best_bid, db_log_outcome,
     init_db   # added
 )
 from .engine import run_red_flag_rules, rank_quotes
+from .intake import extract_document_spec
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO)
@@ -80,6 +81,10 @@ class JobSpecCreate(BaseModel):
     confirmed_by_user: bool = False
     intake_source: str = "voice_interview"
 
+class DocumentIntakeResponse(BaseModel):
+    id: str
+    missing_fields: List[str]
+
 class CallStartRequest(BaseModel):
     spec_id: str
     company_id: str
@@ -117,6 +122,30 @@ def create_spec(payload: JobSpecCreate):
     except Exception as e:
         logger.error(f"Error creating spec: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/specs/{id}", response_model=Dict[str, Any])
+def update_spec(id: str, payload: JobSpecCreate):
+    updated = db_update_spec(id, payload.model_dump())
+    if not updated:
+        raise HTTPException(status_code=404, detail="Spec not found")
+    return updated
+
+@app.post("/intake/doc", response_model=DocumentIntakeResponse)
+async def intake_document(file: UploadFile = File(...)):
+    """Extract a cleaning spec from a PDF/image, persist it as a draft, then require review."""
+    try:
+        spec_data, missing_fields = await extract_document_spec(file)
+        saved = db_create_spec(spec_data)
+        return {"id": saved["id"], "missing_fields": missing_fields}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Document intake failed")
+        raise HTTPException(status_code=500, detail=f"Document intake failed: {e}")
+
+@app.get("/health")
+def health():
+    return {"ok": True, "service": "the-negotiator"}
 
 @app.patch("/specs/{id}/confirm", response_model=Dict[str, Any])
 def confirm_spec(id: str):
@@ -241,6 +270,9 @@ def get_report(spec_id: str):
     for call in calls_list:
         q = call.get("quote")
         if q:
+            red_flag_reasons = q.get("red_flag_reasons") or [
+                flag.replace("_", " ").capitalize() for flag in q.get("red_flags") or []
+            ]
             serialized_quotes.append({
                 "id": q["id"],
                 "company_id": call["company_id"],
@@ -254,7 +286,7 @@ def get_report(spec_id: str):
                 "moved_because": q.get("moved_because"),
                 "conditions": q.get("conditions") or [],
                 "red_flags": q.get("red_flags") or [],
-                "red_flag_reasons": q.get("red_flag_reasons") or [],
+                "red_flag_reasons": red_flag_reasons,
                 "callback_contact": q.get("callback_contact"),
                 "callback_window": q.get("callback_window"),
                 "notes": q.get("notes"),

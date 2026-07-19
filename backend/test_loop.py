@@ -76,14 +76,14 @@ def run_simulation():
     for c in calls:
         print(f" - Call ID: {c['call_id']} | Company: {c['company_name']} ({c['persona']}) | Status: {c['status']}")
 
-    # Find the call IDs for our 3 companies
-    call_map = {c["persona"]: c["call_id"] for c in calls}
+    # Find the call and actual UUID company IDs for our three seeded companies.
+    call_map = {str(c["persona"]).lower(): c for c in calls}
 
     print("\n=== STEP 3: Simulating Call 1 (Apex Cleaning Co - Premium) ===")
-    premium_call_id = call_map["Premium"]
+    premium_call_id = call_map["premium"]["call_id"]
 
     # Start call
-    client.post("/calls/start", json={"spec_id": spec_id, "company_id": "company_1"})
+    client.post("/calls/start", json={"spec_id": spec_id, "company_id": call_map["premium"]["company_id"]})
 
     # Log quote items
     client.post("/tools/log_quote_item", json={
@@ -115,9 +115,9 @@ def run_simulation():
     print(json.dumps(response.json(), indent=2))
 
     print("\n=== STEP 4: Simulating Call 2 (Budget Cleaners - Lowballer) ===")
-    lowballer_call_id = call_map["Lowballer"]
+    lowballer_call_id = call_map["lowballer"]["call_id"]
 
-    client.post("/calls/start", json={"spec_id": spec_id, "company_id": "company_2"})
+    client.post("/calls/start", json={"spec_id": spec_id, "company_id": call_map["lowballer"]["company_id"]})
 
     client.post("/tools/log_quote_item", json={
         "call_id": lowballer_call_id,
@@ -140,9 +140,9 @@ def run_simulation():
     print(json.dumps(response.json(), indent=2))
 
     print("\n=== STEP 5: Simulating Call 3 (Sparkle & Shine - Upseller) ===")
-    upseller_call_id = call_map["Upseller"]
+    upseller_call_id = call_map["upseller"]["call_id"]
 
-    client.post("/calls/start", json={"spec_id": spec_id, "company_id": "company_3"})
+    client.post("/calls/start", json={"spec_id": spec_id, "company_id": call_map["upseller"]["company_id"]})
 
     # Mid-call: Closer gets best bid
     response = client.get(f"/tools/get_best_bid?spec_id={spec_id}&exclude=Sparkle")

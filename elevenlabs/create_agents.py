@@ -27,7 +27,7 @@ if "ELEVENLABS_API_KEY" not in os.environ and (ROOT / ".env").exists():
     for line in (ROOT / ".env").read_text().splitlines():
         if "=" in line and not line.strip().startswith("#"):
             k, _, v = line.partition("=")
-            os.environ.setdefault(k.strip(), v.strip())
+            os.environ.setdefault(k.strip(), v.strip().split(" #", 1)[0].rstrip())
 
 API_KEY = os.environ["ELEVENLABS_API_KEY"]
 
@@ -76,16 +76,16 @@ def webhook_tool(name, description, method, url, body_schema=None):
 
 def interviewer_prompt():
     prompt = (ROOT / "prompts" / "interviewer.md").read_text()
-    yaml_text = (ROOT / "verticals" / "moving.yaml").read_text()
+    yaml_text = (ROOT / "verticals" / "cleaning.yaml").read_text()
     m = re.search(r"interview_questions:\n((?:  - .+\n)+)", yaml_text)
     questions = m.group(1) if m else ""
-    return prompt + "\n\n## Interview questions (from verticals/moving.yaml)\n" + questions
+    return prompt + "\n\n## Interview questions (from verticals/cleaning.yaml)\n" + questions
 
 
 def caller_prompt():
     # single-brace placeholders in the repo prompt -> ElevenLabs {{dynamic_variables}}
     prompt = (ROOT / "prompts" / "caller.md").read_text()
-    for var in ["company_name", "origin_city", "destination_city", "move_date", "job_spec_json"]:
+    for var in ["company_name", "spec_id", "call_id", "job_spec_json"]:
         prompt = prompt.replace("{" + var + "}", "{{" + var + "}}")
     return prompt
 
@@ -116,18 +116,20 @@ def main():
         "save_job_spec",
         "Save the completed, user-confirmed job specification. Call exactly once, only "
         "after the user has explicitly confirmed the read-back of the full spec.",
-        "POST", f"{PLACEHOLDER}/api/job-spec",
+        "POST", f"{PLACEHOLDER}/specs",
         {
             "type": "object",
             "description": "The complete job spec (see schemas/job_spec.schema.json)",
             "properties": {
-                "origin": {"type": "object", "description": "address, home_type, bedrooms, floor, elevator, stairs_flights, parking_distance_ft", "properties": {}},
-                "destination": {"type": "object", "description": "address, home_type, floor, elevator, stairs_flights, parking_distance_ft", "properties": {}},
-                "move": {"type": "object", "description": "distance_miles, move_date, flexibility_days", "properties": {}},
-                "inventory": {"type": "object", "description": "large_items, boxes_estimate, fragile_items", "properties": {}},
-                "services": {"type": "object", "description": "packing, disassembly, insurance", "properties": {}},
+                "property": {"type": "object", "description": "type, sqft, bedrooms, bathrooms, levels", "properties": {}},
+                "clean_type": {"type": "string", "enum": ["standard", "deep", "move_out"]},
+                "frequency": {"type": "string", "enum": ["one_time", "weekly", "biweekly", "monthly"]},
+                "condition": {"type": "object", "properties": {}},
+                "add_ons": {"type": "object", "properties": {}},
+                "access": {"type": "object", "properties": {}},
+                "schedule": {"type": "object", "properties": {}},
             },
-            "required": ["origin", "destination", "move", "inventory", "services"],
+            "required": ["property", "clean_type", "frequency", "condition", "add_ons", "access", "schedule"],
         },
     )
     print("save_job_spec tool:", ids["tool_save_job_spec"])
@@ -135,8 +137,8 @@ def main():
     ids["tool_log_quote_item"] = webhook_tool(
         "log_quote_item",
         "Log one itemized fee or charge the company just quoted, immediately when you hear "
-        "it. Call once per line item (base labor, truck fee, stairs fee, fuel, materials, insurance, etc).",
-        "POST", f"{PLACEHOLDER}/api/quote-items",
+        "it. Call once per line item (base cleaning, deep-clean premium, add-ons, parking, supplies, etc).",
+        "POST", f"{PLACEHOLDER}/api/calls/{{{{call_id}}}}/quote-items",
         {
             "type": "object",
             "properties": {
@@ -154,7 +156,7 @@ def main():
         "get_best_bid",
         "Get the current best competing itemized bid from other companies, for negotiation "
         "leverage. Returns null if no competing bid exists yet — then you must NOT imply one exists.",
-        "GET", f"{PLACEHOLDER}/api/best-bid",
+        "GET", f"{PLACEHOLDER}/api/best-bid?spec_id={{{{spec_id}}}}&exclude={{{{company_name}}}}",
     )
     print("get_best_bid tool:", ids["tool_get_best_bid"])
 
@@ -162,15 +164,14 @@ def main():
         "log_outcome",
         "Record the structured outcome of this call. MUST be called exactly once before the "
         "call ends. Never end a call without it.",
-        "POST", f"{PLACEHOLDER}/api/outcome",
+        "POST", f"{PLACEHOLDER}/api/calls/{{{{call_id}}}}/outcome",
         {
             "type": "object",
             "properties": {
-                "outcome": {"type": "string", "description": "one of: itemized_quote | callback_commitment | declined_documented"},
+                "outcome": {"type": "string", "enum": ["quote", "callback", "declined"]},
                 "initial_total": {"type": "number", "description": "First total quoted, before negotiation"},
                 "final_total": {"type": "number", "description": "Total after negotiation"},
-                "binding": {"type": "boolean", "description": "true if the company called the quote binding"},
-                "conditions": {"type": "array", "description": "e.g. 'weekday move only', 'cash deposit required'", "items": {"type": "string", "description": "one condition attached to the price"}},
+                "conditions": {"type": "array", "description": "e.g. 'weekday service only', 'cash deposit required'", "items": {"type": "string", "description": "one condition attached to the price"}},
                 "callback_contact": {"type": "string", "description": "Name of who will call back, if callback_commitment"},
                 "callback_window": {"type": "string", "description": "Promised time window, if callback_commitment"},
                 "notes": {"type": "string", "description": "Anything else the customer should know"},
@@ -183,8 +184,8 @@ def main():
     ids["agent_interviewer"] = make_agent(
         "negotiator-interviewer",
         interviewer_prompt(),
-        "Hi! I'm your moving assistant. I'll ask a few quick questions so movers can give "
-        "you a real, binding quote — takes about two minutes. Ready?",
+        "Hi! I'm your cleaning assistant. I'll ask a few quick questions so cleaners can give "
+        "you a comparable quote — takes about two minutes. Ready?",
         [ids["tool_save_job_spec"]],
     )
     print("interviewer agent:", ids["agent_interviewer"])
@@ -195,11 +196,10 @@ def main():
         "Hi, is this {{company_name}}?",
         [ids["tool_log_quote_item"], ids["tool_get_best_bid"], ids["tool_log_outcome"]],
         dynamic_defaults={
-            "company_name": "the moving company",
-            "origin_city": "Rock Hill",
-            "destination_city": "Charlotte",
-            "move_date": "2026-08-08",
-            "job_spec_json": json.dumps(json.loads((ROOT / "fixtures" / "daniel_job_spec.json").read_text())),
+            "company_name": "the cleaning company",
+            "spec_id": "set-per-call",
+            "call_id": "set-per-call",
+            "job_spec_json": "set-per-call",
         },
     )
     print("caller agent:", ids["agent_caller"])

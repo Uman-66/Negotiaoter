@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background-color: #16191E;
+}
+
+body {
+  font-family: var(--font-body);
+  color: #F1EADA;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+::selection {
+  background: #E8A33D;
+  color: #16191E;
+}
+
+/* Ticket: the recurring card motif — a dispatch/order ticket punched
+   out of paper stock, used for every discrete unit of data (a job
+   spec field, a company row, a quote). */
+.ticket {
+  background-color: #F1EADA;
+  color: #20242A;
+  border-radius: 2px;
+  position: relative;
+}
+.ticket::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #C3C9D0 0,
+    #C3C9D0 4px,
+    transparent 4px,
+    transparent 9px
+  );
+}
+
+/* Signal lamp used on the switchboard panel */
+.signal-lamp {
+  width: 9px;
+  height: 9px;
+  border-radius: 9999px;
+  box-shadow: 0 0 6px 1px currentColor;
+}
+
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+a, button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #16191E;
+}
+::-webkit-scrollbar-thumb {
+  background: #454C56;
+  border-radius: 6px;
+}
